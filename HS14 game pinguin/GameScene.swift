@@ -9,6 +9,7 @@ import SpriteKit
 
 class GameScene: SKScene {
     
+    var numRounds = 0
     var slots = [WhackSlot]()
     var popupTime = 0.85
     var gameScore: SKLabelNode!
@@ -44,9 +45,6 @@ class GameScene: SKScene {
         }
         
     }
-
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-    }
     
     
     func createSlot(at position: CGPoint) {
@@ -57,6 +55,23 @@ class GameScene: SKScene {
     }
     
     func createEnemy() {
+        
+        
+        numRounds += 1
+
+        if numRounds >= 30 {
+            for slot in slots {
+                slot.hide()
+            }
+
+            let gameOver = SKSpriteNode(imageNamed: "gameOver")
+            gameOver.position = CGPoint(x: 512, y: 384)
+            gameOver.zPosition = 1
+            addChild(gameOver)
+
+            return
+        }
+        
         popupTime *= 0.991
 
         slots.shuffle()
@@ -73,6 +88,39 @@ class GameScene: SKScene {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.createEnemy()
+        }
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let tappedNodes = nodes(at: location)
+
+        for node in tappedNodes {
+            if node.name == "charFriend" {
+                guard let whackSlot = node.parent?.parent as? WhackSlot else { continue }
+                if !whackSlot.isVisible { continue }
+                if whackSlot.isHit { continue }
+
+                whackSlot.hit()
+                score -= 5
+
+                run(SKAction.playSoundFileNamed("whackBad.caf", waitForCompletion:false))
+                
+            } else if node.name == "charEnemy" {
+                
+                guard let whackSlot = node.parent?.parent as? WhackSlot else { continue }
+                if !whackSlot.isVisible { continue }
+                if whackSlot.isHit { continue }
+
+                whackSlot.charNode.xScale = 0.85
+                whackSlot.charNode.yScale = 0.85
+
+                whackSlot.hit()
+                score += 1
+
+                run(SKAction.playSoundFileNamed("whack.caf", waitForCompletion:false))
+            }
         }
     }
     
